@@ -17,18 +17,16 @@ fn main() {
         
         let mut guess = String::new();
         io::stdin().read_line(&mut guess).expect("读取失败");
-        let mut guess: u32 = match guess.trim().parse() {
-            Ok(num) => num,
+        let guess: u32 = match guess.trim().parse() {
+            Ok(num) => match Guess::new(num) {
+                Ok(guess) => guess.value(),
+                Err(err) => {
+                    eprintln!("{}", err);
+                    continue;
+                }
+            },
             Err(_) => {
                 println!("请输入数字");
-                continue;
-            }
-        };
-
-        guess = match Guess::new(guess) {
-            Ok(guess) => guess.value(),
-            Err(err) => {
-                println!("{}", err);
                 continue;
             }
         };

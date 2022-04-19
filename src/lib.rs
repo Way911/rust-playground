@@ -1,4 +1,4 @@
-use std::{error::Error, fs, env};
+use std::{env, error::Error, fs};
 
 pub fn run(config: &Config) -> Result<(), Box<dyn Error>> {
     let contents = fs::read_to_string(config.filename.clone())?;
@@ -54,7 +54,11 @@ impl Config {
         let query = args[1].clone();
         let filename = args[2].clone();
         let case_sensitive = env::var("CASE_INSENSITIVE").is_err();
-        return Ok(Config { query, filename, case_sensitive });
+        return Ok(Config {
+            query,
+            filename,
+            case_sensitive,
+        });
     }
 }
 
@@ -95,6 +99,9 @@ safe, fast, productive.
 Pick three.
 Duct tape.";
 
-        assert_eq!(vec!["safe, fast, productive.", "Duct tape."], search_case_insensitive(query, contents));
+        assert_eq!(
+            vec!["safe, fast, productive.", "Duct tape."],
+            search_case_insensitive(query, contents)
+        );
     }
 }

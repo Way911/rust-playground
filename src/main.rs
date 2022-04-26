@@ -1,5 +1,6 @@
 use rust_playground::run;
 
-fn main() {
-    run();
+#[async_std::main]
+async fn main() {
+    run().await;
 }

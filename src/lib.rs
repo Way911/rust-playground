@@ -1,4 +1,3 @@
-use std::thread;
 use std::time::Duration;
 
 use async_std::prelude::*;
@@ -8,7 +7,8 @@ use async_std::net::TcpStream;
 use futures::stream::StreamExt;
 
 use async_std::fs;
-use async_std::task::spawn;
+use async_std::task;
+
 use rand::thread_rng;
 use rand::Rng;
 
@@ -34,7 +34,7 @@ async fn handle_connection(mut stream: TcpStream) {
             fs::read_to_string("static/index.html").await.unwrap(),
         )
     } else if data.starts_with(sleep) {
-        thread::sleep(Duration::from_secs(10));
+        task::sleep(Duration::from_secs(10)).await;
         (
             "HTTP/1.1 200 OK\r\n\r\n",
             fs::read_to_string("static/index.html").await.unwrap(),
@@ -69,7 +69,7 @@ pub async fn run() {
         .incoming()
         .for_each_concurrent(/* limit */ None, |stream| async move {
             let stream = stream.unwrap();
-            spawn(handle_connection(stream));
+            task::spawn(handle_connection(stream));
         })
         .await;
 }

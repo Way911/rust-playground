@@ -1,4 +1,5 @@
-use std::io::Write;
+use std::error::Error;
+use std::io::{ErrorKind, Write};
 use std::{fs::File, io};
 
 use serde::{Deserialize, Serialize};
@@ -24,7 +25,7 @@ pub trait JsonSerde<T> {
 impl JsonSerde<Self> for User {
     fn persist(&self, filename: &str) -> std::result::Result<usize, std::io::Error> {
         let json = serde_json::to_vec(self)?;
-        let mut file = File::create(filename)?;
+        let mut file = create_file(filename)?;
         file.write_all(&json)?;
         Ok(json.len())
     }
@@ -36,29 +37,46 @@ impl JsonSerde<Self> for User {
 }
 
 pub trait BincodeSerde<T> {
-    fn persist(&self, filename: &str) -> Result<usize, io::Error>;
-    fn load(filename: &str) -> Result<T, io::Error>;
+    fn persist(&self, filename: &str) -> Result<(), Box<dyn Error>>;
+    fn load(filename: &str) -> Result<T, Box<dyn Error>>;
 }
 
 impl BincodeSerde<Self> for User {
-    fn persist(&self, filename: &str) -> Result<usize, io::Error> {
-        let mut file = File::create(filename)?;
+    fn persist(&self, filename: &str) -> Result<(), Box<dyn Error>> {
+        let file = create_file(filename)?;
         // let data = match bincode::serialize_into(file, self) {
         //     Ok(it) => Ok(0),
         //     Err(err) => Err(err),
         // };
-        let data = bincode::serialize(self).unwrap();
-        file.write_all(&data)?;
-        Ok(data.len())
+        let data = bincode::serialize_into(file, self)?;
+        Ok(data)
     }
 
-    fn load(filename: &str) -> Result<Self, io::Error> {
+    fn load(filename: &str) -> Result<Self, Box<dyn Error>> {
         let file = File::open(filename)?;
         // let mut data = String::new();
         // file.read_to_string(&mut data)?;
-        let user = bincode::deserialize_from(file).unwrap();
+        let user = bincode::deserialize_from(file)?;
         Ok(user)
     }
+}
+
+fn create_file(filename: &str) -> Result<File, io::Error> {
+    let file = match File::create(filename) {
+        Ok(file) => file,
+        Err(err) => match err.kind() {
+            ErrorKind::NotFound => {
+                let path = std::path::Path::new(filename);
+                let prefix = path.parent().unwrap();
+                std::fs::create_dir_all(prefix)?;
+                File::create(filename)?
+            }
+            other_error => {
+                panic!("Problem opening the file: {:?}", other_error)
+            }
+        },
+    };
+    Ok(file)
 }
 
 impl Default for User {
